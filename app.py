@@ -157,9 +157,10 @@ def display_jobs_table(jobs):
         "Title": job.get("Job Title", ""),
         "Company": job.get("Company Name", ""),
         "Location": job.get("Location", ""),
-        "Posted": job.get("Posted Time", ""),  # Raw LinkedIn text
+        "Job Portal Posted Time": job.get("Posted Time", ""),  # Raw LinkedIn text
         "Salary": job.get("Salary", ""),
         "Experience": job.get("Years of Experience", ""),
+        "Pharma AI Posted Time": job.get("Posted date of Pharma AI", ""),
         "Link": job.get("Job Link", "")
     } for job in jobs])
 
