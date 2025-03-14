@@ -261,7 +261,7 @@ main_application()
 
 # Add Tableau visualization at the bottom
 st.markdown("<hr>", unsafe_allow_html=True)
-st.subheader("Industry Insights Dashboard")
+st.subheader("H1B Visa Sponsorships (Leading Life Science Companies 2024)")
 
 # Use components.html for proper embedding
 from streamlit.components.v1 import html
