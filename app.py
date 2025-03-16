@@ -113,7 +113,7 @@ def retrieve_jobs(state: AgentState):
     return {"jobs": [match.metadata for match in results.matches if match.metadata]}
 
 def generate_analysis(state: AgentState):
-    job_texts = "\n\n".join([f"Title: {job['Job Title']}\nCompany: {job['Company Name']}" 
+    job_texts = "\n\n".join([f"Title: {job.get('Job Title', 'N/A')}\nCompany: {job.get('Company Name', 'N/A')}" 
                             for job in state["jobs"]])
     prompt_template = ChatPromptTemplate.from_messages([
         ("system", "You're a career advisor. Analyze these jobs:"),
@@ -133,8 +133,8 @@ def tailor_resume(state: AgentState):
         ("human", "Job: {job_title}\n{job_description}\nResume: {resume_text}")
     ])
     messages = prompt_template.format_messages(
-        job_title=job['Job Title'],
-        job_description=job['Job Description'],
+        job_title=job.get('Job Title', ''),
+        job_description=job.get('Job Description', 'No job description available'),
         resume_text=state["resume_text"]
     )
     response = llm.invoke(messages)
@@ -157,10 +157,10 @@ def display_jobs_table(jobs):
         "Title": job.get("Job Title", ""),
         "Company": job.get("Company Name", ""),
         "Location": job.get("Location", ""),
-        "Job Portal Posted Time": job.get("Posted Time", ""),  # Original portal text
+        "Job Portal Posted Time": job.get("Posted Time", ""),
         "Salary": job.get("Salary", ""),
         "Experience": job.get("Years of Experience", ""),
-        "Pharma AI Posted Date": job.get("Posted date of Pharma AI", ""),  # New column
+        "Pharma AI Posted Date": job.get("Posted date of Pharma AI", ""),
         "Link": job.get("Job Link", "")
     } for job in jobs])
 
@@ -207,7 +207,7 @@ if 'logged_in' not in st.session_state:
         "jobs": [],
         "current_response": "",
         "selected_job": None,
-        "history": []  # Added missing field
+        "history": []
     }
 
 if not st.session_state.logged_in:
@@ -229,7 +229,7 @@ def main_application():
             st.session_state.agent_state.update({
                 "resume_text": resume_text,
                 "selected_job": None,
-                "history": []  # Reset history on new analysis
+                "history": []
             })
             for event in app.stream(st.session_state.agent_state):
                 st.session_state.agent_state.update(event.get("__end__", {}))
@@ -244,12 +244,12 @@ def main_application():
 
         selected_job = st.selectbox(
             "Select job to tailor resume",
-            [job["Job Title"] for job in st.session_state.agent_state["jobs"]]
+            [job.get("Job Title", "Untitled Position") for job in st.session_state.agent_state["jobs"]]
         )
-        if selected_job:
+        if selected_job and selected_job != "Untitled Position":
             st.session_state.agent_state["selected_job"] = next(
                 job for job in st.session_state.agent_state["jobs"]
-                if job["Job Title"] == selected_job
+                if job.get("Job Title", "") == selected_job
             )
             if st.button("Generate Tailoring Suggestions"):
                 result = tailor_resume(st.session_state.agent_state)
@@ -259,12 +259,9 @@ def main_application():
 
 main_application()
 
-# Add Tableau visualization at the bottom
+# Tableau visualization
 st.markdown("<hr>", unsafe_allow_html=True)
 st.subheader("H1B Visa Sponsorships (Leading Life Science Companies 2024)")
-
-# Add this at the bottom after your main application code
-from streamlit.components.v1 import html
 
 tableau_code = """
 <div class='tableauPlaceholder' id='viz1738751341715' style='position: relative; overflow: hidden;'>
@@ -290,46 +287,36 @@ document.addEventListener('DOMContentLoaded', function() {
     var divElement = document.getElementById('viz1738751341715');
     var vizElement = divElement.getElementsByTagName('object')[0];
     
-    // Hide Tableau branding and controls
     vizElement.style.width = '100%';
-    vizElement.style.height = '600px';  // Fixed height or use calc(100vh - 400px)
+    vizElement.style.height = '600px';
     vizElement.style.border = 'none';
     
-    // Remove unwanted elements after load
     function cleanTableauUI() {
         try {
-            // Remove Tableau public banner
             var publicBanner = vizElement.contentDocument.querySelector('.tab-public-banner');
             if (publicBanner) publicBanner.style.display = 'none';
             
-            // Remove download and share buttons
             var toolbar = vizElement.contentDocument.querySelector('.tab-toolbar');
             if (toolbar) toolbar.style.display = 'none';
             
-            // Remove "View in Tableau Public" text
             var viewLinks = vizElement.contentDocument.querySelectorAll('a[target="_blank"]');
             viewLinks.forEach(link => link.style.display = 'none');
         } catch(e) {
-            // Retry if iframe not loaded yet
             setTimeout(cleanTableauUI, 100);
         }
     }
     
-    // Initial cleanup attempt
     cleanTableauUI();
     
-    // Add resize observer
     new ResizeObserver(entries => {
-        vizElement.style.height = '600px';  // Maintain fixed height or adjust as needed
+        vizElement.style.height = '600px';
     }).observe(divElement);
 
-    // Load Tableau script
     var scriptElement = document.createElement('script');
     scriptElement.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';
     vizElement.parentNode.insertBefore(scriptElement, vizElement);
 });
 </script>
 """
-
 
 html(tableau_code, width=1200, height=650, scrolling=False)
